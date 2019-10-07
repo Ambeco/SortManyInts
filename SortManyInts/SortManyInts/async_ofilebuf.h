@@ -1,6 +1,11 @@
 //triple buffer output filebuf by Tavis Bohne
 //as a heavy rewrite of  https://stackoverflow.com/a/21127776/845092
-//which was written by Dietmar Kühl Jan 15 '14
+//which was written by Dietmar KÃ¼hl Jan 15 '14
+//ex:
+//async_ofilebuf stream_buf(in_path.string().c_str(), std::ios_base::binary);
+//std::ostream stream(&stream_buf);
+//stream.write(buffer.c_data(), buffer.size());
+//stream.flush();
 
 #pragma once
 #include <cassert>
