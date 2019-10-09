@@ -27,7 +27,7 @@ const char IN_FILENAME[] = "random.bin";
 const char OUT_FILENAME[] = "sorted.bin";
 
 #ifdef _MSC_VER 
-long long getTotalSystemMemory()
+unsigned long long getTotalSystemMemory()
 {
 	MEMORYSTATUSEX status;
 	status.dwLength = sizeof(status);
@@ -35,7 +35,7 @@ long long getTotalSystemMemory()
 	return status.ullTotalPhys;
 }
 #else 
-long long getTotalSystemMemory()
+unsigned long long getTotalSystemMemory()
 {
 	long long pages = sysconf(_SC_PHYS_PAGES);
 	long page_size = sysconf(_SC_PAGE_SIZE);
@@ -51,7 +51,7 @@ po::options_description get_options_description() {
 	return desc;
 }
 
-bool is_right_length(const fs::path& in_path, long long filesize) {
+bool is_right_length(const fs::path& in_path, unsigned long long filesize) {
 	try {
 		std::ifstream stream{ in_path.c_str(), std::ios_base::binary };
 		stream.exceptions(~std::ios::goodbit);
@@ -67,19 +67,19 @@ bool is_right_length(const fs::path& in_path, long long filesize) {
 	}
 }
 
-bool is_sorted(const fs::path& in_path, long long filesize) {
+bool is_sorted(const fs::path& in_path, unsigned long long filesize) {
 	try {
 		std::ifstream stream{ in_path.c_str(), std::ios_base::binary };
 		stream.exceptions(~std::ios::goodbit);
-		long long min = LLONG_MIN;
-		long long next = LLONG_MIN;
+		unsigned long long min = 0;
+		unsigned long long next = ULLONG_MIN;
 		std::cout << "verifying shuffled file...\n";
-		long long dot_offset = filesize / 79;
+		unsigned long long dot_offset = filesize / 79;
 		do {
-			long long stop = std::min(dot_offset, filesize);
-			for (long long i = 0; i < stop; i++) {
-				stream.read((char*)&next, sizeof(long long));
-				if (next < min || stream.gcount() != sizeof(long long)) {
+			unsigned long long stop = std::min(dot_offset, filesize);
+			for (unsigned long long i = 0; i < stop; i++) {
+				stream.read((char*)&next, sizeof(unsigned long long));
+				if (next < min || stream.gcount() != sizeof(unsigned long long)) {
 					std::cout << in_path << " is not sorted\n";
 					return false;
 				}
@@ -95,7 +95,7 @@ bool is_sorted(const fs::path& in_path, long long filesize) {
 	}
 }
 
-void create_input_file(const fs::path& in_path, long long filesize) {
+void create_input_file(const fs::path& in_path, unsigned long long filesize) {
 	try {
 		{
 			async_ofilebuf stream_buf(in_path.string().c_str(), std::ios_base::binary);
@@ -104,14 +104,14 @@ void create_input_file(const fs::path& in_path, long long filesize) {
 			std::cout << "creating shuffled file...\n";
 			constexpr int buff_ints = 4096 * 2 / sizeof(unsigned int);
 			std::array<unsigned int, buff_ints> buffer;
-			long long remaining_ints = filesize / sizeof(unsigned int);
-			long long dot_offset = remaining_ints / 79;
+			unsigned long long remaining_ints = filesize / sizeof(unsigned int);
+			unsigned long long dot_offset = remaining_ints / 79;
 			srand_sse(std::random_device{}());
 			do {
-				long long stop = std::min(dot_offset, remaining_ints);
-				long long ints_this_dot = 0;
+				unsigned long long stop = std::min(dot_offset, remaining_ints);
+				unsigned long long ints_this_dot = 0;
 				do {
-					long long block_size = std::min((long long)buff_ints, remaining_ints);
+					unsigned long long block_size = std::min((unsigned long long)buff_ints, remaining_ints);
 					unsigned int first;
 					for (int i = 0; i < block_size; i++) {
 						rand_sse(&first);
@@ -135,7 +135,7 @@ void create_input_file(const fs::path& in_path, long long filesize) {
 	}
 }
 
-fs::path choose_and_prepare_input_file(long long filesize) {
+fs::path choose_and_prepare_input_file(unsigned long long filesize) {
 	const fs::path in_path = fs::temp_directory_path().append(IN_FILENAME);
 	try {
 		if (!fs::exists(in_path) || !is_right_length(in_path, filesize)) {
@@ -190,7 +190,7 @@ fs::path choose_and_prepare_output_file() {
 	}
 }
 
-int write_results(const fs::path out_path, long long filesize, std::chrono::time_point<std::chrono::steady_clock> start) {
+int write_results(const fs::path out_path, unsigned long long filesize, std::chrono::time_point<std::chrono::steady_clock> start) {
 	auto finish = std::chrono::high_resolution_clock::now();
 #ifdef _DEBUG
 	if (!is_sorted(out_path, filesize))
@@ -222,8 +222,8 @@ int do_test(const std::unordered_map<std::string, sorter*>& sorters, po::variabl
 		return EXIT_FAILURE;
 	}
 
-	long long filesize = getTotalSystemMemory() / DEBUG_FRACTION / sizeof(long long) * sizeof(long long);
-	if (filesize % sizeof(long long) != 0) BOOST_THROW_EXCEPTION(boost::enable_error_info(std::runtime_error("filesize must be multiple of sizeof(long long)")));
+	unsigned long long filesize = getTotalSystemMemory() / DEBUG_FRACTION / sizeof(unsigned long long) * sizeof(unsigned long long);
+	if (filesize % sizeof(unsigned long long) != 0) BOOST_THROW_EXCEPTION(boost::enable_error_info(std::runtime_error("filesize must be multiple of sizeof(unsigned long long)")));
 	const fs::path in_path = choose_and_prepare_input_file(filesize);
 	const fs::path out_path = choose_and_prepare_output_file();
 

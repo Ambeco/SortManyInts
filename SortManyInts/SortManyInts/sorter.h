@@ -10,4 +10,6 @@ enum sorter_output {
 };
 
 //returns sorted if a sort was done, or success/fail if it processed without sorting
-typedef sorter_output sorter(const std::filesystem::path& in_path, long long filesize, const std::filesystem::path& out_path, boost::program_options::variables_map& arguments);
+typedef sorter_output sorter(const std::filesystem::path& in_path, unsigned long long filesize, const std::filesystem::path& out_path, boost::program_options::variables_map& arguments);
+
+long long getTotalSystemMemory();
