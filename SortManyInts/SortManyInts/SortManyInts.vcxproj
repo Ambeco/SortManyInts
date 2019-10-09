@@ -172,12 +172,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="async_ifilebuf.h" />
     <ClInclude Include="async_ofilebuf.h" />
     <ClInclude Include="dietmar_async_buf.h" />
     <ClInclude Include="rand_sse.h" />
     <ClInclude Include="sorter.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="bucket.cpp" />
     <ClCompile Include="core.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="stubsort.cpp" />
