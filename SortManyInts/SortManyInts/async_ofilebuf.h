@@ -22,11 +22,11 @@ struct async_ofilebuf : std::streambuf
 	std::vector<char> dumping_buffer;
 	std::condition_variable condition;
 	bool flush = false;
-	bool done = false;
+	bool destroy = false;
 	std::thread thread;
 
 	void worker(const char* name, std::ios_base::openmode mode = std::ios_base::out) {
-		auto has_bytes_predicate = [this]() { return !this->swap_buffer.empty() || this->done;};
+		auto has_bytes_predicate = [this]() { return !this->swap_buffer.empty() || this->destroy;};
 		out.open(name, mode);
 		bool local_done = false;
 		while (!local_done) {
@@ -40,7 +40,7 @@ struct async_ofilebuf : std::streambuf
 				dumping_buffer.swap(swap_buffer);
 			}
 			condition.notify_one();
-			local_done = done && dumping_buffer.empty();
+			local_done = destroy && dumping_buffer.empty();
 			out.write(dumping_buffer.data(), dumping_buffer.size());
 			dumping_buffer.clear();
 		}
@@ -49,7 +49,7 @@ struct async_ofilebuf : std::streambuf
 	void dump(bool then_flush) {
 		if (pbase() != pptr()) {
 			filling_buffer.resize(std::size_t(pptr() - pbase()));
-			auto empty_predicate = [this]() {return this->swap_buffer.empty() || this->done; };
+			auto empty_predicate = [this]() {return this->swap_buffer.empty() || this->destroy; };
 			{
 				std::unique_lock<std::mutex> guard(mutex);
 				condition.wait(guard, empty_predicate);
@@ -64,17 +64,16 @@ struct async_ofilebuf : std::streambuf
 		}
 	}
 public:
-	//mode wasn't in 
 	async_ofilebuf(const char* name, std::ios_base::openmode mode = std::ios_base::out)
 		: filling_buffer(buffer_dump_size)
-		, thread(&async_ofilebuf::worker, this, name, mode) {
+		, thread(&worker, this, name, mode) {
 		setp(filling_buffer.data(), filling_buffer.data() + filling_buffer.size() - 1);
 	}
 	~async_ofilebuf() {
 		dump(false);
 		{
 			std::unique_lock<std::mutex>(mutex);
-			done = true;
+			destroy = true;
 		}
 		condition.notify_one();
 		thread.join();
@@ -95,7 +94,7 @@ public:
 		dump(true);
 		auto idle_predicate = [this]() { 
 			return (this->swap_buffer.empty() && this->dumping_buffer.empty())
-				|| this->done; 
+				|| this->destroy; 
 		};
 		std::unique_lock<std::mutex> guard(mutex);
 		condition.wait(guard, idle_predicate);
